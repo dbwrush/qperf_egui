@@ -30,6 +30,8 @@ You can download the latest version from the [Releases](https://github.com/dbwru
 
 For other systems (e.g., macOS or ARM-based devices), you will need to build the program from source. 
 
+**Command-line**: This version uses a graphical interface that is easier for most users. If you prefer a command-line interface, check out [qperf_cli](https://github.com/dbwrush/qperf_cli)
+
 
 ## Building From Source
 
