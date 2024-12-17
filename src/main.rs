@@ -1,6 +1,6 @@
 extern crate lazy_static;
 use eframe::egui;
-use qperf_gui::qperf;
+use qperformance::qperf;
 use rfd::FileDialog;
 use std::fs;
 use std::io::Write;
