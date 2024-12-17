@@ -33,15 +33,15 @@ For other systems (e.g., macOS or ARM-based devices), you will need to build the
 **Command-line**: This version uses a graphical interface that is easier for most users. If you prefer a command-line interface, check out [qperf_cli](https://github.com/dbwrush/qperf_cli)
 
 
-## Building From Source
+### Building From Source
 
 If the pre-compiled versions don't work on your machine, or you're using a platform like macOS or ARM-based devices, you can build `qperformance` from source.
 
-### Prerequisites
+**Prerequisites**
 
 - [Rust](https://www.rust-lang.org/tools/install) must be installed on your system.
 
-### Build Instructions
+**Build Instructions**
 
 1. **Clone the repository**:
    ```bash
