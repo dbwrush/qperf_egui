@@ -221,6 +221,7 @@ fn update_arrays(warns: &mut Vec<String>, records: Vec<csv::StringRecord>, quizz
         found_rounds.sort();
         eprintln!("Found Question Sets: {:?}", found_rounds);
         eprintln!("If your question sets are not named correctly, please rename them to match the round numbers in the quiz data file");
+        warns.push(format!("If your question sets are not named correctly, please rename them to match the round numbers in the quiz data file"));
     }
 }
 
