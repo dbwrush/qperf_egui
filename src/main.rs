@@ -1,5 +1,5 @@
 extern crate lazy_static;
-use eframe::egui;
+use eframe::egui::{self, Visuals};
 use qperformance::qperf;
 use rfd::FileDialog;
 use std::fs;
@@ -43,7 +43,8 @@ impl Default for QpApp {
 impl eframe::App for QpApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
-            ui.visuals_mut().override_text_color = Some(egui::Color32::WHITE);
+            //ctx.set_visuals(Visuals::dark());
+            ui.visuals_mut().override_text_color = None;
             ui.heading("QPerformance");
             ui.add_space(10.0);
             
@@ -93,7 +94,7 @@ impl eframe::App for QpApp {
                 if ui.button("Run").clicked() {
                     self.run_command();
                 }
-                ui.visuals_mut().override_text_color = Some(egui::Color32::WHITE);
+                ui.visuals_mut().override_text_color = None;
                 if ui.button("Clear").clicked() {
                     self.questions_path.clear();
                     self.logs_path.clear();
@@ -114,7 +115,7 @@ impl eframe::App for QpApp {
                 for warn in &self.warns {
                     ui.label(warn);
                 }
-                ui.visuals_mut().override_text_color = Some(egui::Color32::WHITE);
+                ui.visuals_mut().override_text_color = None;
             }
 
             ui.add_space(20.0);
