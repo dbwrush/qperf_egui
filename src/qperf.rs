@@ -123,6 +123,8 @@ fn build_results(quizzer_names: Vec<String>, attempts: Vec<Vec<f32>>, correct_an
 
     // Build the results for each quizzer
     for (i, quizzer_name) in quizzer_names.iter().enumerate() {
+        //QuizMachine outputs often put single quotes around quizzer names. Check for them and remove them if present.
+        let quizzer_name = quizzer_name.trim_matches('\'');
         result.push_str(&format!("{},\t", quizzer_name));
         for question_type in &question_types_list {
             if types.len() > 0 && !types.contains(question_type) {
