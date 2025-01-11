@@ -7,7 +7,7 @@ use std::path::Path;
 lazy_static! {
     static ref QUESTION_TYPE_INDICES: HashMap<char, usize> = {
         let mut m = HashMap::new();
-        for (i, c) in ['A', 'G', 'I', 'Q', 'R', 'S', 'X', 'V'].iter().enumerate() {
+        for (i, c) in ['A', 'G', 'I', 'Q', 'R', 'S', 'X', 'V', 'M'].iter().enumerate() {
             m.insert(*c, i);
         }
         m
@@ -184,6 +184,9 @@ fn update_arrays(warns: &mut Vec<String>, records: Vec<csv::StringRecord>, quizz
             question_type = question_types.get(round_number as &str).unwrap_or(&vec!['G'])[question_number];
         }
         let question_type = question_type;
+
+        //Q, R, and V all count towards a total for memory verses.
+        let memory = question_type == 'Q' || question_type == 'R' || question_type == 'V';
         if verbose {
             eprintln!("QType: {} ", question_type);
         }
@@ -197,16 +200,31 @@ fn update_arrays(warns: &mut Vec<String>, records: Vec<csv::StringRecord>, quizz
             "'TC'" => {
                 attempts[quizzer_index][question_type_index] += 1.0;
                 correct_answers[quizzer_index][question_type_index] += 1.0;
+                //also add for memory total
+                if memory {
+                    attempts[quizzer_index][8] += 1.0;
+                    correct_answers[quizzer_index][8] += 1.0;
+                }
             }
             "'TE'" => {
                 attempts[quizzer_index][question_type_index] += 1.0;
+                if memory {
+                    attempts[quizzer_index][8] += 1.0;
+                }
             }
             "'BC'" => {
                 bonus_attempts[quizzer_index][question_type_index] += 1.0;
                 bonus[quizzer_index][question_type_index] += 1.0;
+                if memory {
+                    bonus_attempts[quizzer_index][8] += 1.0;
+                    bonus[quizzer_index][8] += 1.0;
+                }
             }
             "'BE'" => {
                 bonus_attempts[quizzer_index][question_type_index] += 1.0;
+                if memory {
+                    bonus_attempts[quizzer_index][8] += 1.0;
+                }
             }
             _ => {}
         }
