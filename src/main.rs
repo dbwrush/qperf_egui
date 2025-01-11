@@ -1,3 +1,5 @@
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] //hide console in Windows releases
+
 extern crate lazy_static;
 use eframe::egui::{self};
 use qperformance::qperf;
