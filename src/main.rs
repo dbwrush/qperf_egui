@@ -1,5 +1,5 @@
 extern crate lazy_static;
-use eframe::egui::{self, Visuals};
+use eframe::egui::{self};
 use qperformance::qperf;
 use rfd::FileDialog;
 use std::fs;
@@ -9,7 +9,7 @@ use std::path::Path;
 fn main() -> Result<(), eframe::Error> {
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder { 
-            inner_size: Some(egui::vec2(320.0, 500.0)),
+            inner_size: Some(egui::vec2(320.0, 600.0)),
             ..Default::default()}
             .with_icon(
                 eframe::icon_data::from_png_bytes(include_bytes!("assets/icon.png"))
@@ -30,6 +30,7 @@ struct QpApp {
     output_path: String,
     status_message: String,
     warns: Vec<String>,
+    checked: Vec<bool>,
 }
 
 impl Default for QpApp {
@@ -40,6 +41,7 @@ impl Default for QpApp {
             output_path: String::new(),
             status_message: String::new(),
             warns: Vec::new(),
+            checked: [true, true, true, true, true, true, true, true, true].to_vec(),
         }
     }
 }
@@ -89,6 +91,24 @@ impl eframe::App for QpApp {
                 }
             });
             ui.label(format!("Selected: {}", self.output_path.clone()));
+
+            ui.add_space(10.0);
+
+            ui.label("Question Types:");
+            ui.horizontal(|ui| {
+                ui.checkbox(&mut self.checked[0], "A");
+                ui.checkbox(&mut self.checked[1], "G");
+                ui.checkbox(&mut self.checked[2], "I");
+                ui.checkbox(&mut self.checked[3], "Q");
+            });
+            ui.horizontal(|ui| {
+                ui.checkbox(&mut self.checked[4], "R");
+                ui.checkbox(&mut self.checked[5], "S");
+                ui.checkbox(&mut self.checked[6], "X");
+                ui.checkbox(&mut self.checked[7], "V");
+            });
+
+            ui.checkbox(&mut self.checked[8], "Memory Verse totals (Q, R, V)");
 
             ui.add_space(20.0);
 
@@ -151,8 +171,15 @@ impl QpApp {
             return;
         }
 
+        let mut types = Vec::new();
+        for i in 0..9 {
+            if self.checked[i] {
+                types.push(['A', 'G', 'I', 'Q', 'R', 'S', 'X', 'V', 'M'][i]);
+            }
+        }
+
         // Call the qperf function
-        match qperf(&self.questions_path, &self.logs_path, false) {
+        match qperf(&self.questions_path, &self.logs_path, false, types) {
             Ok(result) => {
                 // Write the result to the output file
                 self.warns = result.0;
