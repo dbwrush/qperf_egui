@@ -10,7 +10,11 @@ fn main() -> Result<(), eframe::Error> {
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder { 
             inner_size: Some(egui::vec2(320.0, 500.0)),
-            ..Default::default()},
+            ..Default::default()}
+            .with_icon(
+                eframe::icon_data::from_png_bytes(include_bytes!("assets/icon.png"))
+                    .unwrap_or_default(),
+            ),
         ..Default::default()
     };
     eframe::run_native(
@@ -43,7 +47,6 @@ impl Default for QpApp {
 impl eframe::App for QpApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
-            //ctx.set_visuals(Visuals::dark());
             ui.visuals_mut().override_text_color = None;
             ui.heading("QPerformance");
             ui.add_space(10.0);
@@ -90,7 +93,7 @@ impl eframe::App for QpApp {
             ui.add_space(20.0);
 
             ui.horizontal(|ui| {
-                ui.visuals_mut().override_text_color = Some(egui::Color32::GREEN);
+                ui.visuals_mut().override_text_color = Some(egui::Color32::from_rgb(0, 177, 0));
                 if ui.button("Run").clicked() {
                     self.run_command();
                 }

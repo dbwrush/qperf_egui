@@ -114,7 +114,7 @@ fn build_results(quizzer_names: Vec<String>, attempts: Vec<Vec<f32>>, correct_an
     let mut question_types_list: Vec<_> = QUESTION_TYPE_INDICES.keys().collect();
     question_types_list.sort();
     for question_type in &question_types_list {
-        result.push_str(&format!("{} QA,\t{} QC,\t{} BA,\t{} BC,\t", question_type, question_type, question_type, question_type));
+        result.push_str(&format!("{} Attempted,\t{} Correct,\t{} Bonuses Attempted,\t{} Bonuses Correct,\t", question_type, question_type, question_type, question_type));
     }
     result.push('\n');
 
