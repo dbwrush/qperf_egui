@@ -14,6 +14,10 @@ lazy_static! {
     };
 }
 
+pub fn get_question_types() -> Vec<char> {
+    ['A', 'G', 'I', 'Q', 'R', 'S', 'X', 'V', 'M'].to_vec()
+}
+
 pub fn qperformance(question_sets_dir_path: &str, quiz_data_path: &str) -> Result<(Vec<String>, String), Box<dyn std::error::Error>> {
     qperf(question_sets_dir_path, quiz_data_path, false, ['A', 'G', 'I', 'Q', 'R', 'S', 'X', 'V', 'M'].to_vec())
 }
@@ -27,6 +31,18 @@ pub fn qperf(question_sets_dir_path: &str, quiz_data_path: &str, verbose: bool, 
     }
     if !Path::new(quiz_data_path).exists() {
         return Err(format!("Error: The path to the quiz data does not exist: {}", quiz_data_path).into());
+    }
+
+    if verbose {
+        //print requested question types
+        eprintln!("Requested Question Types: {:?}", types);
+    }
+
+    //check that all chars in types are valid question types (from get_question_types())
+    for c in &types {
+        if !get_question_types().contains(c) {
+            return Err(format!("Error: Invalid question type '{}'.", c).into());
+        }
     }
 
     let mut entries = Vec::new();
@@ -114,7 +130,7 @@ fn build_results(quizzer_names: Vec<String>, attempts: Vec<Vec<f32>>, correct_an
     let mut question_types_list: Vec<_> = QUESTION_TYPE_INDICES.keys().collect();
     question_types_list.sort();
     for question_type in &question_types_list {
-        if types.len() > 0 && !types.contains(question_type) {
+        if !types.contains(question_type) {
             continue;
         }
         result.push_str(&format!("{} Attempted,\t{} Correct,\t{} Bonuses Attempted,\t{} Bonuses Correct,\t", question_type, question_type, question_type, question_type));
