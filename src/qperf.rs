@@ -110,10 +110,10 @@ pub fn qperf(question_sets_dir_path: &str, quiz_data_path: &str, verbose: bool, 
     let num_quizzers = quizzer_names.len();
     let num_question_types = QUESTION_TYPE_INDICES.len();
 
-    let mut attempts: Vec<Vec<f32>> = vec![vec![0.0; num_question_types]; num_quizzers];
-    let mut correct_answers: Vec<Vec<f32>> = vec![vec![0.0; num_question_types]; num_quizzers];
-    let mut bonus_attempts: Vec<Vec<f32>> = vec![vec![0.0; num_question_types]; num_quizzers];
-    let mut bonus: Vec<Vec<f32>> = vec![vec![0.0; num_question_types]; num_quizzers];
+    let mut attempts: Vec<Vec<u32>> = vec![vec![0; num_question_types]; num_quizzers];
+    let mut correct_answers: Vec<Vec<u32>> = vec![vec![0; num_question_types]; num_quizzers];
+    let mut bonus_attempts: Vec<Vec<u32>> = vec![vec![0; num_question_types]; num_quizzers];
+    let mut bonus: Vec<Vec<u32>> = vec![vec![0; num_question_types]; num_quizzers];
 
     update_arrays(&mut warns, records, &quizzer_names, question_types_by_round, &mut attempts, &mut correct_answers, &mut bonus_attempts, &mut bonus, false);
 
@@ -122,7 +122,7 @@ pub fn qperf(question_sets_dir_path: &str, quiz_data_path: &str, verbose: bool, 
     Ok((warns, result))
 }
 
-fn build_results(quizzer_names: Vec<String>, attempts: Vec<Vec<f32>>, correct_answers: Vec<Vec<f32>>, bonus_attempts: Vec<Vec<f32>>, bonus: Vec<Vec<f32>>, types: Vec<char>) -> String {
+fn build_results(quizzer_names: Vec<String>, attempts: Vec<Vec<u32>>, correct_answers: Vec<Vec<u32>>, bonus_attempts: Vec<Vec<u32>>, bonus: Vec<Vec<u32>>, types: Vec<char>) -> String {
     let mut result = String::new();
 
     // Build the header
@@ -159,7 +159,7 @@ fn build_results(quizzer_names: Vec<String>, attempts: Vec<Vec<f32>>, correct_an
     result
 }
 
-fn update_arrays(warns: &mut Vec<String>, records: Vec<csv::StringRecord>, quizzer_names: &Vec<String>, question_types: HashMap<String, Vec<char>>, attempts: &mut Vec<Vec<f32>>, correct_answers: &mut Vec<Vec<f32>>, bonus_attempts: &mut Vec<Vec<f32>>, bonus: &mut Vec<Vec<f32>>, verbose: bool) {
+fn update_arrays(warns: &mut Vec<String>, records: Vec<csv::StringRecord>, quizzer_names: &Vec<String>, question_types: HashMap<String, Vec<char>>, attempts: &mut Vec<Vec<u32>>, correct_answers: &mut Vec<Vec<u32>>, bonus_attempts: &mut Vec<Vec<u32>>, bonus: &mut Vec<Vec<u32>>, verbose: bool) {
     //list of skipped rounds
     let mut missing: Vec<String> = Vec::new();
 
@@ -222,32 +222,32 @@ fn update_arrays(warns: &mut Vec<String>, records: Vec<csv::StringRecord>, quizz
         // Update the arrays based on the event type code
         match *event_code {
             "'TC'" => {
-                attempts[quizzer_index][question_type_index] += 1.0;
-                correct_answers[quizzer_index][question_type_index] += 1.0;
+                attempts[quizzer_index][question_type_index] += 1;
+                correct_answers[quizzer_index][question_type_index] += 1;
                 //also add for memory total
                 if memory {
-                    attempts[quizzer_index][8] += 1.0;
-                    correct_answers[quizzer_index][8] += 1.0;
+                    attempts[quizzer_index][8] += 1;
+                    correct_answers[quizzer_index][8] += 1;
                 }
             }
             "'TE'" => {
-                attempts[quizzer_index][question_type_index] += 1.0;
+                attempts[quizzer_index][question_type_index] += 1;
                 if memory {
-                    attempts[quizzer_index][8] += 1.0;
+                    attempts[quizzer_index][8] += 1;
                 }
             }
             "'BC'" => {
-                bonus_attempts[quizzer_index][question_type_index] += 1.0;
-                bonus[quizzer_index][question_type_index] += 1.0;
+                bonus_attempts[quizzer_index][question_type_index] += 1;
+                bonus[quizzer_index][question_type_index] += 1;
                 if memory {
-                    bonus_attempts[quizzer_index][8] += 1.0;
-                    bonus[quizzer_index][8] += 1.0;
+                    bonus_attempts[quizzer_index][8] += 1;
+                    bonus[quizzer_index][8] += 1;
                 }
             }
             "'BE'" => {
-                bonus_attempts[quizzer_index][question_type_index] += 1.0;
+                bonus_attempts[quizzer_index][question_type_index] += 1;
                 if memory {
-                    bonus_attempts[quizzer_index][8] += 1.0;
+                    bonus_attempts[quizzer_index][8] += 1;
                 }
             }
             _ => {}
