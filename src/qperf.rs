@@ -19,10 +19,10 @@ pub fn get_question_types() -> Vec<char> {
 }
 
 pub fn qperformance(question_sets_dir_path: &str, quiz_data_path: &str) -> Result<(Vec<String>, String), Box<dyn std::error::Error>> {
-    qperf(question_sets_dir_path, quiz_data_path, false, ['A', 'G', 'I', 'Q', 'R', 'S', 'X', 'V', 'M'].to_vec())
+    qperf(question_sets_dir_path, quiz_data_path, false, ['A', 'G', 'I', 'Q', 'R', 'S', 'X', 'V', 'M'].to_vec(), ",".to_string())
 }
 
-pub fn qperf(question_sets_dir_path: &str, quiz_data_path: &str, verbose: bool, types: Vec<char>) -> Result<(Vec<String>, String), Box<dyn std::error::Error>> {
+pub fn qperf(question_sets_dir_path: &str, quiz_data_path: &str, verbose: bool, types: Vec<char>, delim: String) -> Result<(Vec<String>, String), Box<dyn std::error::Error>> {
     let mut warns = Vec::new();
     
     // Validate the paths
@@ -117,12 +117,12 @@ pub fn qperf(question_sets_dir_path: &str, quiz_data_path: &str, verbose: bool, 
 
     update_arrays(&mut warns, records, &quizzer_names, question_types_by_round, &mut attempts, &mut correct_answers, &mut bonus_attempts, &mut bonus, false);
 
-    let result = build_results(quizzer_names, attempts, correct_answers, bonus_attempts, bonus, types);
+    let result = build_results(quizzer_names, attempts, correct_answers, bonus_attempts, bonus, types, delim);
 
     Ok((warns, result))
 }
 
-fn build_results(quizzer_names: Vec<String>, attempts: Vec<Vec<u32>>, correct_answers: Vec<Vec<u32>>, bonus_attempts: Vec<Vec<u32>>, bonus: Vec<Vec<u32>>, types: Vec<char>) -> String {
+fn build_results(quizzer_names: Vec<String>, attempts: Vec<Vec<u32>>, correct_answers: Vec<Vec<u32>>, bonus_attempts: Vec<Vec<u32>>, bonus: Vec<Vec<u32>>, types: Vec<char>, delim: String) -> String {
     let mut result = String::new();
 
     // Build the header
@@ -147,11 +147,11 @@ fn build_results(quizzer_names: Vec<String>, attempts: Vec<Vec<u32>>, correct_an
                 continue;
             }
             let question_type_index = *QUESTION_TYPE_INDICES.get(question_type).unwrap_or(&0);
-            result.push_str(&format!("{:.1},\t{:.1},\t{:.1},\t{:.1},\t",
-                                     attempts[i][question_type_index],
-                                     correct_answers[i][question_type_index],
-                                     bonus_attempts[i][question_type_index],
-                                     bonus[i][question_type_index]));
+            result.push_str(&format!("{:.1}{}{:.1}{}{:.1}{}{:.1}{}",
+                                     attempts[i][question_type_index], delim,
+                                     correct_answers[i][question_type_index], delim,
+                                     bonus_attempts[i][question_type_index], delim,
+                                     bonus[i][question_type_index], delim));
         }
         result.push('\n');
     }

@@ -31,6 +31,7 @@ struct QpApp {
     logs_path: String,
     output_path: String,
     status_message: String,
+    delimiter: String,
     warns: Vec<String>,
     checked: Vec<bool>,
 }
@@ -42,6 +43,7 @@ impl Default for QpApp {
             logs_path: String::new(),
             output_path: String::new(),
             status_message: String::new(),
+            delimiter: ",".to_string(),
             warns: Vec::new(),
             checked: [true, true, true, true, true, true, true, true, true].to_vec(),
         }
@@ -112,6 +114,13 @@ impl eframe::App for QpApp {
 
             ui.checkbox(&mut self.checked[8], "Memory Verse totals (Q, R, V)");
 
+            ui.add_space(10.0);
+            ui.horizontal(|ui| {
+                ui.label("Delimiter: ");
+                ui.text_edit_singleline(&mut self.delimiter);
+            });
+
+
             ui.add_space(20.0);
 
             ui.horizontal(|ui| {
@@ -181,7 +190,7 @@ impl QpApp {
         }
 
         // Call the qperf function
-        match qperf(&self.questions_path, &self.logs_path, false, types) {
+        match qperf(&self.questions_path, &self.logs_path, false, types, self.delimiter.clone()) {
             Ok(result) => {
                 // Write the result to the output file
                 self.warns = result.0;
