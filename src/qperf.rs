@@ -126,14 +126,15 @@ fn build_results(quizzer_names: Vec<String>, attempts: Vec<Vec<u32>>, correct_an
     let mut result = String::new();
 
     // Build the header
-    result.push_str("Quizzer,\t");
+    result.push_str("Quizzer");
+    result.push_str(&delim);
     let mut question_types_list: Vec<_> = QUESTION_TYPE_INDICES.keys().collect();
     question_types_list.sort();
     for question_type in &question_types_list {
         if !types.contains(question_type) {
             continue;
         }
-        result.push_str(&format!("{} Attempted,\t{} Correct,\t{} Bonuses Attempted,\t{} Bonuses Correct,\t", question_type, question_type, question_type, question_type));
+        result.push_str(&format!("{} Attempted{}{} Correct{}{} Bonuses Attempted{}{} Bonuses Correct{}", question_type, delim, question_type, delim, question_type, delim, question_type, delim));
     }
     result.push('\n');
 
@@ -141,7 +142,7 @@ fn build_results(quizzer_names: Vec<String>, attempts: Vec<Vec<u32>>, correct_an
     for (i, quizzer_name) in quizzer_names.iter().enumerate() {
         //QuizMachine outputs often put single quotes around quizzer names. Check for them and remove them if present.
         let quizzer_name = quizzer_name.trim_matches('\'');
-        result.push_str(&format!("{},\t", quizzer_name));
+        result.push_str(&format!("{}{}", quizzer_name, delim));
         for question_type in &question_types_list {
             if types.len() > 0 && !types.contains(question_type) {
                 continue;
