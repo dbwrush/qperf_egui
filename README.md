@@ -16,6 +16,7 @@
   - Attempts and answers bonus questions.
 - Choose which question types to include in the report
 - Outputs results in CSV format, which can be easily imported into spreadsheet software like Excel.
+- Customizable delimiters between values. Default is `,`.
 
 ---
 
