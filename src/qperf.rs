@@ -102,10 +102,10 @@ pub fn qperf(question_sets_dir_path: &str, quiz_data_path: &str, verbose: bool, 
     if verbose {
         eprintln!("Found {} records", records.len());
     }
-
-    let quizzer_names = get_quizzer_names(records.clone());
+    let (quizzer_names, team_names) = get_quizzer_names(records.clone(), verbose, &mut warns);
     if verbose {
         eprintln!("Quizzer Names: {:?}", quizzer_names);
+        eprintln!("Team Names: {:?}", team_names);
     }
     let num_quizzers = quizzer_names.len();
     let num_question_types = QUESTION_TYPE_INDICES.len();
@@ -117,16 +117,18 @@ pub fn qperf(question_sets_dir_path: &str, quiz_data_path: &str, verbose: bool, 
 
     update_arrays(&mut warns, records, &quizzer_names, question_types_by_round, &mut attempts, &mut correct_answers, &mut bonus_attempts, &mut bonus, false);
 
-    let result = build_results(quizzer_names, attempts, correct_answers, bonus_attempts, bonus, types, delim);
+    let result = build_results(quizzer_names, attempts, correct_answers, bonus_attempts, bonus, types, delim, team_names);
 
     Ok((warns, result))
 }
 
-fn build_results(quizzer_names: Vec<String>, attempts: Vec<Vec<u32>>, correct_answers: Vec<Vec<u32>>, bonus_attempts: Vec<Vec<u32>>, bonus: Vec<Vec<u32>>, types: Vec<char>, delim: String) -> String {
+fn build_results(quizzer_names: Vec<String>, attempts: Vec<Vec<u32>>, correct_answers: Vec<Vec<u32>>, bonus_attempts: Vec<Vec<u32>>, bonus: Vec<Vec<u32>>, types: Vec<char>, delim: String, team_names: Vec<String>) -> String {
     let mut result = String::new();
 
     // Build the header
     result.push_str("Quizzer");
+    result.push_str(&delim);
+    result.push_str("Team");
     result.push_str(&delim);
     let mut question_types_list: Vec<_> = QUESTION_TYPE_INDICES.keys().collect();
     question_types_list.sort();
@@ -142,7 +144,9 @@ fn build_results(quizzer_names: Vec<String>, attempts: Vec<Vec<u32>>, correct_an
     for (i, quizzer_name) in quizzer_names.iter().enumerate() {
         //QuizMachine outputs often put single quotes around quizzer names. Check for them and remove them if present.
         let quizzer_name = quizzer_name.trim_matches('\'');
-        result.push_str(&format!("{}{}", quizzer_name, delim));
+        let team_name = String::new();
+        let team = team_names.get(i).unwrap_or(&team_name).trim_matches('\'');
+        result.push_str(&format!("{}{}{}{}", quizzer_name, delim, team, delim));
         for question_type in &question_types_list {
             if types.len() > 0 && !types.contains(question_type) {
                 continue;
@@ -255,47 +259,101 @@ fn update_arrays(warns: &mut Vec<String>, records: Vec<csv::StringRecord>, quizz
         }
     }
     if missing.len() > 0 {
-        eprintln!("Warning: Some records were skipped due to missing question sets");
+        //eprintln!("Warning: Some records were skipped due to missing question sets");
         warns.push("Warning: Some records were skipped due to missing question sets".to_string());
-        eprintln!("Skipped Rounds: {:?}", missing);
+        //eprintln!("Skipped Rounds: {:?}", missing);
         warns.push(format!("Skipped Rounds: {:?}", missing));
         //Display the question set numbers found in the RTF files, sort them for easier reading.
         let mut found_rounds: Vec<_> = question_types.keys().collect();
         found_rounds.sort();
         eprintln!("Found Question Sets: {:?}", found_rounds);
-        eprintln!("If your question sets are not named correctly, please rename them to match the round numbers in the quiz data file");
+        //eprintln!("If your question sets are not named correctly, please rename them to match the round numbers in the quiz data file");
         warns.push(format!("If your question sets are not named correctly, please rename them to match the round numbers in the quiz data file"));
     }
 }
 
-fn get_quizzer_names(records: Vec<csv::StringRecord>) -> Vec<String> {
-    let mut quizzer_names_by_team: Vec<Vec<String>> = Vec::new();
-    let mut seen_names: std::collections::HashSet<String> = std::collections::HashSet::new();
+fn get_quizzer_names(records: Vec<csv::StringRecord>, verbose: bool, warns: &mut Vec<String>) -> (Vec<String>, Vec<String>) {
+    let mut current_team = String::new();
+    let mut round_quizzers: Vec<String> = Vec::new();
+    let mut round_teams: Vec<String> = Vec::new();
+    let mut confirmed_quizzers: Vec<String> = Vec::new();
+    let mut confirmed_teams: Vec<String> = Vec::new();
+    let mut action = false;
+    let mut index = 0;
 
     for record in records {
+        /*
+        So there's a really dumb problem here.
+        Sometimes, the output from QuizMachine includes leftover team names from practice sessions.
+        While I've never seen actual questions from these practice sessions show up, I HAVE seen the names appear.
+        This can mean a quizzer's name appears in two teams (one from practice, one from the actual quiz).
+        The below code is an attempt to remove practice team and quizzer names by only adding teams when they participate in 'action'
+        */
+
         // Split the record by commas to get the columns
         let columns: Vec<&str> = record.into_iter().collect();
-        // Get the quizzer name and team number
-        let quizzer_name = columns.get(7).unwrap_or(&"").to_string();
-        let team_number = columns.get(8).unwrap_or(&"").parse::<usize>().unwrap_or(0);
-        // Ensure the team number is within the range of the 2D array
-        if team_number >= quizzer_names_by_team.len() {
-            quizzer_names_by_team.resize(team_number + 1, Vec::new());
+        let ecode = columns.get(10).unwrap_or(&"");//if this is "TN", it's a team name. If it's "QN", it's a quizzer name.
+        let name = columns.get(7).unwrap_or(&"").to_string();//The name of either a quizzer or a team, depending on the event code.
+        let team_number = columns.get(9).unwrap_or(&"").to_string();//team number from the current record. This gets reset to 0 at the start of each round.
+        //If team_number becomes 0 before any action takes place, it means the names in round_teams might be from a practice session and can't be confirmed.
+        if ecode == &"'TN'" {//team name. Check if they're already in the map, and add them if not.
+            if team_number == "0" {//this is a new round.
+                check_valid_round(&mut round_teams, &mut round_quizzers, &mut confirmed_teams, &mut confirmed_quizzers, verbose, &mut action);
+            } else {
+                if action {
+                    //This shouldn't ever happen. But I've seen it happen. I'm honeslty not sure what should happen in this situation.
+                    //So I figure we'll just run as normal, and give a warning.
+                    warns.push(format!("Warning: Team  '{}' added mid-round at record #{}. This should not happen.", name, index));
+                }
+            }
+            current_team = name.clone();
+        } else if ecode == &"'QN'" {//quizzer name. Add to the team's list.
+            if name != "''" && current_team != "''" {//if the name is not empty, add it to the list.
+                round_quizzers.push(name.clone());
+                round_teams.push(current_team.clone());
+            }
+        } else if ecode == &"'BC'" || ecode == &"'BE'" || ecode == &"'TC'" || ecode == &"'TE'" {//action has happened, teams present in this round can be confirmed.
+            action = true;
+        } else if ecode == &"'RM'" {//Indicates start of new round. Check if current teams can be confirmed.
+            check_valid_round(&mut round_teams, &mut round_quizzers, &mut confirmed_teams, &mut confirmed_quizzers, verbose, &mut action);
         }
-        // Add the quizzer name to the corresponding team if it hasn't been seen before
-        if seen_names.insert(quizzer_name.clone()) {
-            quizzer_names_by_team[team_number].push(quizzer_name);
+
+        index += 1;//shouldn't be needed, but for debugging why not have it?
+    }
+
+    if verbose {
+        eprintln!("Confirmed Teams: {:?}", confirmed_teams);
+        eprintln!("Confirmed Quizzers: {:?}", confirmed_quizzers);
+    }
+
+    (confirmed_quizzers, confirmed_teams)
+}
+
+fn check_valid_round(round_teams: &mut Vec<String>, round_quizzers: &mut Vec<String>, confirmed_teams: &mut Vec<String>, confirmed_quizzers: &mut Vec<String>, verbose: bool, action: &mut bool) {
+    if *action {
+        for i in 0..round_quizzers.len() {
+            if !confirmed_quizzers.contains(&round_quizzers[i]) {
+                confirmed_quizzers.push(round_quizzers[i].clone());
+                confirmed_teams.push(round_teams[i].clone());
+            }
+        }
+        if verbose {
+            eprintln!("Confirming Teams: {:?}", round_teams);
+            eprintln!("Confirming Quizzers: {:?}", round_quizzers);
+        }
+    } else {
+        if verbose {
+            eprintln!("No action taken in round, teams: {:?} might be from practice", round_teams);
         }
     }
-    // Flatten the 2D array into a single array
-    let quizzer_names: Vec<String> = quizzer_names_by_team.into_iter().flatten().collect();
-
-    quizzer_names
+    *action = false;
+    round_teams.clear();
+    round_quizzers.clear();
 }
 
 fn filter_records(records: Vec<csv::StringRecord>) -> Vec<csv::StringRecord> {
     let mut filtered_records = Vec::new();
-    let event_codes = vec!["'TC'", "'TE'", "'BC'", "'BE'"]; // event type codes
+    let event_codes = vec!["'TC'", "'TE'", "'BC'", "'BE'", "'TN'", "'QN'", "'RM'"]; // event type codes
 
     for record in records {
         // Split the record by commas to get the columns
@@ -305,12 +363,6 @@ fn filter_records(records: Vec<csv::StringRecord>) -> Vec<csv::StringRecord> {
             filtered_records.push(csv::StringRecord::from(columns));
         }
     }
-
-    // Print the filtered records for debugging
-    /*println!("Filtered Records:");
-    for record in &filtered_records {
-        println!("{:?}", record);
-    }*/
 
     filtered_records
 }
