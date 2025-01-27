@@ -1,8 +1,8 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] //hide console in Windows releases
+extern crate qperf_lib;
 
-extern crate lazy_static;
+use qperf_lib::qperf;
 use eframe::egui::{self};
-use qperformance::qperf;
 use rfd::FileDialog;
 use std::fs;
 use std::io::Write;
