@@ -32,6 +32,7 @@ struct QpApp {
     output_path: String,
     status_message: String,
     delimiter: String,
+    tourn: String,
     warns: Vec<String>,
     checked: Vec<bool>,
 }
@@ -44,6 +45,7 @@ impl Default for QpApp {
             output_path: String::new(),
             status_message: String::new(),
             delimiter: ",".to_string(),
+            tourn: "".to_string(),
             warns: Vec::new(),
             checked: [true, true, true, true, true, true, true, true, true].to_vec(),
         }
@@ -120,6 +122,14 @@ impl eframe::App for QpApp {
                 ui.text_edit_singleline(&mut self.delimiter);
             });
 
+            ui.add_space(10.0);
+            ui.horizontal(|ui| {
+                ui.label("Tournament: ");
+                ui.text_edit_singleline(&mut self.tourn);
+            });
+            //Warn briefly that the tournament name is to filter out junk data from practice/other events.
+            ui.label("Fill to filter data from other quizzes, practices, etc.");
+
 
             ui.add_space(20.0);
 
@@ -158,7 +168,8 @@ impl eframe::App for QpApp {
             ui.label("1. Select the question set location. Either a single .RTF file, or a folder containing multiple files");
             ui.label("2. Select the QuizMachine records file (.csv).");
             ui.label("3. Select the output file location (.csv)");
-            ui.label("4. Click Run. Results are saved to the chosen location");
+            ui.label("4. Choose question types, delimiter, and tournament name");
+            ui.label("5. Click Run. Results are saved to the chosen location");
         });
     }
 }
@@ -190,7 +201,7 @@ impl QpApp {
         }
 
         // Call the qperf function
-        match qperf(&self.questions_path, &self.logs_path, false, types, self.delimiter.clone()) {
+        match qperf(&self.questions_path, &self.logs_path, false, types, self.delimiter.clone(), self.tourn.clone()) {
             Ok(result) => {
                 // Write the result to the output file
                 self.warns = result.0;
