@@ -11,7 +11,7 @@ use std::path::Path;
 fn main() -> Result<(), eframe::Error> {
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder { 
-            inner_size: Some(egui::vec2(320.0, 600.0)),
+            inner_size: Some(egui::vec2(320.0, 650.0)),
             ..Default::default()}
             .with_icon(
                 eframe::icon_data::from_png_bytes(include_bytes!("assets/icon.png"))
@@ -35,6 +35,8 @@ struct QpApp {
     tourn: String,
     warns: Vec<String>,
     checked: Vec<bool>,
+    display_individual_rounds: bool,
+    disp_paths: (String, String),
 }
 
 impl Default for QpApp {
@@ -48,6 +50,8 @@ impl Default for QpApp {
             tourn: "".to_string(),
             warns: Vec::new(),
             checked: [true, true, true, true, true, true, true, true, true].to_vec(),
+            display_individual_rounds: false,
+            disp_paths: (String::new(), String::new()),
         }
     }
 }
@@ -61,30 +65,33 @@ impl eframe::App for QpApp {
             
             ui.horizontal(|ui| {
                 ui.label("Questions Sets:");
-                if ui.button("Single file(.rtf)").clicked() {
-                    if let Some(path) = FileDialog::new().add_filter("RTF files", &["rtf"]).pick_file() {
-                        self.questions_path = path.display().to_string();
-                    }
-                }
-                if ui.button("Folder").clicked() {
-                    if let Some(path) = FileDialog::new().pick_folder() {
-                        self.questions_path = path.display().to_string();
+                if ui.button("Pick files(.rtf)").clicked() {
+                    if let Some(path) = FileDialog::new().add_filter("RTF files", &["rtf"]).pick_files() {
+                        //combine all paths to a single string separated by commas
+                        self.questions_path = path.iter().map(|p| p.display().to_string()).collect::<Vec<String>>().join(",");
+
+                        //set disp_path. Should show only the shortened (individual name) for each file, separated by commas
+                        self.disp_paths.0 = path.iter().map(|p| p.file_name().unwrap().to_str().unwrap().to_string()).collect::<Vec<String>>().join(",");
                     }
                 }
             });
-            ui.label(format!("Selected: {}", self.questions_path.clone()));
+            ui.label(format!("Selected: {}", self.disp_paths.0.clone()));
 
             ui.add_space(10.0);
 
             ui.horizontal(|ui| {
                 ui.label("QuizMachine Records:");
-                if ui.button("Select File(.csv)").clicked() {
-                    if let Some(path) = FileDialog::new().add_filter("CSV files", &["csv"]).pick_file() {
-                        self.logs_path = path.display().to_string();
+                if ui.button("Pick Files(.csv)").clicked() {
+                    if let Some(path) = FileDialog::new().add_filter("CSV files", &["csv"]).pick_files() {
+                        //combine all paths to a single string separated by commas
+                        self.logs_path = path.iter().map(|p| p.display().to_string()).collect::<Vec<String>>().join(",");
+
+                        //set disp_path. Should show only the shortened (individual name) for each file, separated by commas
+                        self.disp_paths.1 = path.iter().map(|p| p.file_name().unwrap().to_str().unwrap().to_string()).collect::<Vec<String>>().join(",");
                     }
                 }
             });
-            ui.label(format!("Selected: {}", self.logs_path.clone()));
+            ui.label(format!("Selected: {}", self.disp_paths.1.clone()));
 
             ui.add_space(10.0);
 
@@ -129,6 +136,10 @@ impl eframe::App for QpApp {
             });
             //Warn briefly that the tournament name is to filter out junk data from practice/other events.
             ui.label("Fill to filter data from other quizzes, practices, etc.");
+
+            ui.add_space(10.0);
+
+            ui.checkbox(&mut self.display_individual_rounds, "Display individual round results");
 
 
             ui.add_space(20.0);
@@ -178,14 +189,31 @@ impl QpApp {
     fn run_command(&mut self) {
         self.warns = Vec::new();
         // Validate input paths
-        if !Path::new(&self.questions_path).exists() {
-            self.status_message = "Question set location does not exist.".to_string();
-            return;
+
+        let mut tourn_name = self.tourn.clone();
+
+        //If tournament does not have '' at beginning AND end, add them. QuizMachine records have them.
+        if !tourn_name.starts_with('\'') {
+            tourn_name = format!("'{}", tourn_name);
+            if !tourn_name.ends_with('\'') {
+                tourn_name = format!("{}'", tourn_name);
+            }
         }
 
-        if !Path::new(&self.logs_path).is_file() {
-            self.status_message = "QuizMachine records file does not exist.".to_string();
-            return;
+
+        //iterate through questions_path and logs_path to check if they are valid
+        for path in self.questions_path.split(",") {
+            if !Path::new(&path).exists() {
+                self.status_message = "Question set location does not exist.".to_string();
+                return;
+            }
+        }
+
+        for path in self.logs_path.split(",") {
+            if !Path::new(&path).is_file() {
+                self.status_message = "QuizMachine records file does not exist.".to_string();
+                return;
+            }
         }
 
         if Path::new(&self.output_path).exists() {
@@ -201,7 +229,7 @@ impl QpApp {
         }
 
         // Call the qperf function
-        match qperf(&self.questions_path, &self.logs_path, false, types, self.delimiter.clone(), self.tourn.clone()) {
+        match qperf(&self.questions_path, &self.logs_path, false, types, self.delimiter.clone(), tourn_name, self.display_individual_rounds) {
             Ok(result) => {
                 // Write the result to the output file
                 self.warns = result.0;
