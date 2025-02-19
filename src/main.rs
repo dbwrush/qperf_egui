@@ -193,11 +193,15 @@ impl QpApp {
         let mut tourn_name = self.tourn.clone();
 
         //If tournament does not have '' at beginning AND end, add them. QuizMachine records have them.
-        if !tourn_name.starts_with('\'') {
-            tourn_name = format!("'{}", tourn_name);
-            if !tourn_name.ends_with('\'') {
-                tourn_name = format!("{}'", tourn_name);
+        if tourn_name != "" {
+            if !tourn_name.starts_with('\'') {
+                tourn_name = format!("'{}", tourn_name);
+                if !tourn_name.ends_with('\'') {
+                    tourn_name = format!("{}'", tourn_name);
+                }
             }
+        } else {
+            self.status_message = "Tournament name is empty! This may cause problems!".to_string();
         }
 
 
