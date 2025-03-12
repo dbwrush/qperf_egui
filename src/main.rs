@@ -194,11 +194,11 @@ impl eframe::App for QpApp {
             ui.add_space(20.0);
 
             ui.label("How to use:");
-            ui.label("1. Select the question set location. Either a single .RTF file, or a folder containing multiple files");
+            ui.label("1. Select the question set file(s), must be original RTF files from Set Maker!");
             ui.label("2. Select the QuizMachine records file (.csv).");
-            ui.label("3. Select the output file location (.csv)");
-            ui.label("4. Choose question types, delimiter, and tournament name");
-            ui.label("5. Click Run. Results are saved to the chosen location");
+            ui.label("3. Choose question types, delimiter, and tournament name");
+            ui.label("4. Click Run, check Status for errors!");
+            ui.label("5. Save the output file.");
         });
     }
 }
