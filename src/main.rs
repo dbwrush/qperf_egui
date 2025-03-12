@@ -156,6 +156,11 @@ impl eframe::App for QpApp {
                     self.output_path.clear();
                     self.status_message.clear();
                     self.warns.clear();
+                    self.delimiter = ",".to_string();
+                    self.tourn = "".to_string();
+                    self.display_individual_rounds = false;
+                    self.disp_paths = (String::new(), String::new());
+                    self.checked = [true, true, true, true, true, true, true, true, true].to_vec();
                 }
             });
 
