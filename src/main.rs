@@ -265,6 +265,11 @@ impl QpApp {
             self.status_message = "Output file already exists. Choose a different file name.".to_string();
             return;
         }
+        //check if path is valid
+        if self.output_path.is_empty() {
+            self.status_message = "Output file path is empty!".to_string();
+            return;
+        }
         match fs::File::create(&self.output_path) {
             Ok(mut file) => {
                 if file.write_all(self.output.as_bytes()).is_ok() {
