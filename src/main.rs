@@ -37,6 +37,8 @@ struct QpApp {
     checked: Vec<bool>,
     display_individual_rounds: bool,
     disp_paths: (String, String),
+    output: String,
+    ready_save: String,
 }
 
 impl Default for QpApp {
@@ -52,6 +54,8 @@ impl Default for QpApp {
             checked: [true, true, true, true, true, true, true, true, true].to_vec(),
             display_individual_rounds: false,
             disp_paths: (String::new(), String::new()),
+            output: String::new(),
+            ready_save: String::new(),
         }
     }
 }
@@ -94,16 +98,6 @@ impl eframe::App for QpApp {
             ui.label(format!("Selected: {}", self.disp_paths.1.clone()));
 
             ui.add_space(10.0);
-
-            ui.horizontal(|ui| {
-                ui.label("Output Location:");
-                if ui.button("Select Output File(.csv)").clicked() {
-                    if let Some(path) = FileDialog::new().add_filter("CSV file", &["csv"]).save_file() {
-                        self.output_path = path.display().to_string();
-                    }
-                }
-            });
-            ui.label(format!("Selected: {}", self.output_path.clone()));
 
             ui.add_space(10.0);
 
@@ -161,6 +155,8 @@ impl eframe::App for QpApp {
                     self.display_individual_rounds = false;
                     self.disp_paths = (String::new(), String::new());
                     self.checked = [true, true, true, true, true, true, true, true, true].to_vec();
+                    self.output.clear();
+                    self.ready_save.clear();
                 }
             });
 
@@ -178,6 +174,23 @@ impl eframe::App for QpApp {
                 ui.visuals_mut().override_text_color = None;
             }
 
+            ui.add_space(20.0);
+
+            ui.visuals_mut().override_text_color = Some(egui::Color32::from_rgb(0, 177, 0));
+            ui.label(format!("{}", self.ready_save));
+            ui.visuals_mut().override_text_color = None;
+            
+            ui.add_space(10.0);
+
+            ui.horizontal(|ui| {
+                ui.label("Save Output:");
+                if ui.button("Select Output File(.csv)").clicked() {
+                    if let Some(path) = FileDialog::new().add_filter("CSV file", &["csv"]).save_file() {
+                        self.output_path = path.display().to_string();
+                        self.write_output();
+                    }
+                }
+            });
             ui.add_space(20.0);
 
             ui.label("How to use:");
@@ -225,11 +238,6 @@ impl QpApp {
             }
         }
 
-        if Path::new(&self.output_path).exists() {
-            self.status_message = "Output file already exists. Choose a different file name.".to_string();
-            return;
-        }
-
         let mut types = Vec::new();
         for i in 0..9 {
             if self.checked[i] {
@@ -243,22 +251,30 @@ impl QpApp {
                 // Write the result to the output file
                 self.warns = result.0;
                 //eprintln!("Added warns: {:?}", self.warns);
-                let output = result.1;
-                match fs::File::create(&self.output_path) {
-                    Ok(mut file) => {
-                        if file.write_all(output.as_bytes()).is_ok() {
-                            self.status_message = "Saved".to_string();
-                        } else {
-                            self.status_message = "Error writing to output file".to_string();
-                        }
-                    }
-                    Err(_) => {
-                        self.status_message = "Error creating output file".to_string();
-                    }
-                }
+                self.output = result.1;
+                self.ready_save = "Ready to save".to_string();
             }
             Err(_) => {
                 self.status_message = "Error running qperf function".to_string();
+            }
+        }
+    }
+
+    fn write_output(&mut self) {
+        if Path::new(&self.output_path).exists() {
+            self.status_message = "Output file already exists. Choose a different file name.".to_string();
+            return;
+        }
+        match fs::File::create(&self.output_path) {
+            Ok(mut file) => {
+                if file.write_all(self.output.as_bytes()).is_ok() {
+                    self.ready_save = "Saved successfully".to_string();
+                } else {
+                    self.status_message = "Error writing to output file".to_string();
+                }
+            }
+            Err(_) => {
+                self.status_message = "Error creating output file".to_string();
             }
         }
     }
