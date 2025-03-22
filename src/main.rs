@@ -11,7 +11,7 @@ use std::path::Path;
 fn main() -> Result<(), eframe::Error> {
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder { 
-            inner_size: Some(egui::vec2(320.0, 650.0)),
+            inner_size: Some(egui::vec2(320.0, 850.0)),
             ..Default::default()}
             .with_icon(
                 eframe::icon_data::from_png_bytes(include_bytes!("assets/icon.png"))
@@ -47,7 +47,7 @@ impl Default for QpApp {
             questions_path: String::new(),
             logs_path: String::new(),
             output_path: String::new(),
-            status_message: String::new(),
+            status_message: "Select question set(s)!".to_string(),
             delimiter: ",".to_string(),
             tourn: "".to_string(),
             warns: Vec::new(),
@@ -76,6 +76,8 @@ impl eframe::App for QpApp {
 
                         //set disp_path. Should show only the shortened (individual name) for each file, separated by commas
                         self.disp_paths.0 = path.iter().map(|p| p.file_name().unwrap().to_str().unwrap().to_string()).collect::<Vec<String>>().join(",");
+
+                        self.status_message = "Select QuizMachine log(s)!".to_string();
                     }
                 }
             });
@@ -92,6 +94,8 @@ impl eframe::App for QpApp {
 
                         //set disp_path. Should show only the shortened (individual name) for each file, separated by commas
                         self.disp_paths.1 = path.iter().map(|p| p.file_name().unwrap().to_str().unwrap().to_string()).collect::<Vec<String>>().join(",");
+
+                        self.status_message = "Ready to run!\n(Recommended) Enter a tournament name for better filtering!".to_string();
                     }
                 }
             });
@@ -129,7 +133,7 @@ impl eframe::App for QpApp {
                 ui.text_edit_singleline(&mut self.tourn);
             });
             //Warn briefly that the tournament name is to filter out junk data from practice/other events.
-            ui.label("Fill to filter data from other quizzes, practices, etc.");
+            ui.label("(Recommended) Fill in to exclude data from other tournaments!");
 
             ui.add_space(10.0);
 
@@ -140,15 +144,18 @@ impl eframe::App for QpApp {
 
             ui.horizontal(|ui| {
                 ui.visuals_mut().override_text_color = Some(egui::Color32::from_rgb(0, 177, 0));
-                if ui.button("Run").clicked() {
-                    self.run_command();
+                if self.questions_path.is_empty() || self.logs_path.is_empty() {
+                    //show Run button grayed out if output is empty
+                    ui.add_enabled(false, egui::Button::new("Run"));
+                } else if ui.button("Run").clicked() {
+                        self.run_command();
                 }
                 ui.visuals_mut().override_text_color = None;
                 if ui.button("Clear").clicked() {
                     self.questions_path.clear();
                     self.logs_path.clear();
                     self.output_path.clear();
-                    self.status_message.clear();
+                    self.status_message = "Select question set(s)!".to_string();
                     self.warns.clear();
                     self.delimiter = ",".to_string();
                     self.tourn = "".to_string();
@@ -184,10 +191,18 @@ impl eframe::App for QpApp {
 
             ui.horizontal(|ui| {
                 ui.label("Save Output:");
-                if ui.button("Select Output File(.csv)").clicked() {
-                    if let Some(path) = FileDialog::new().add_filter("CSV file", &["csv"]).save_file() {
-                        self.output_path = path.display().to_string();
-                        self.write_output();
+                if self.output.is_empty() {
+                    //show Save button grayed out if output is empty
+                    ui.add_enabled(false, egui::Button::new("Save File (.csv)"));
+                } else if ui.button("Save File (.csv)").clicked() {
+                    //check that output isn't blank
+                    if self.output.is_empty() {
+                        self.status_message = "Run the program before saving!".to_string();
+                    } else {
+                        if let Some(path) = FileDialog::new().add_filter("CSV file", &["csv"]).save_file() {
+                            self.output_path = path.display().to_string();
+                            self.write_output();
+                        }
                     }
                 }
             });
@@ -195,7 +210,7 @@ impl eframe::App for QpApp {
 
             ui.label("How to use:");
             ui.label("1. Select the question set file(s), must be original RTF files from Set Maker!");
-            ui.label("2. Select the QuizMachine records file (.csv).");
+            ui.label("2. Select the QuizMachine records (.csv) file(s).");
             ui.label("3. Choose question types, delimiter, and tournament name");
             ui.label("4. Click Run, check Status for errors!");
             ui.label("5. Save the output file.");
@@ -218,10 +233,7 @@ impl QpApp {
                     tourn_name = format!("{}'", tourn_name);
                 }
             }
-        } else {
-            self.status_message = "Tournament name is empty! This may cause problems!".to_string();
         }
-
 
         //iterate through questions_path and logs_path to check if they are valid
         for path in self.questions_path.split(",") {
