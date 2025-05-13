@@ -1,4 +1,4 @@
-# ARCHIVED - This is an old version of Qperformance, please see [qperf_cli](https://github.com/dbwrush/qperformance) for the latest version!
+# ARCHIVED - This is an old version of Qperformance, please see [qperformance](https://github.com/dbwrush/qperformance) for the latest version!
 
 # qperformance
 
